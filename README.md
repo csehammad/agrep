@@ -1,10 +1,8 @@
-# agrep
+# agrep -  grep for the agent era.
 
 Universal, agent-first search across code, legal docs, product docs, and logs.
 
-**Repo:** [github.com/csehammad/agrep](https://github.com/csehammad/agrep) · Started as a weekend fun project — grep for the agent era.
 
-**GitHub description** (for repo About):  
 `Agent-first search: natural-language queries, domain-aware ranking, and JSONL output for code, legal, docs, and logs.`
 
 **License:** [MIT](LICENSE)
