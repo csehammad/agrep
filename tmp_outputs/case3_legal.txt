@@ -1,0 +1,7 @@
+{"type":"nl_plan","intent":"search","terms":["termination","for","convenience"],"expanded_terms":["convenience","for","for convenience","material breach","notice","terminate","termination"],"path_boosts":["contracts","legal","msa","dpa"],"excludes":[".git","target"]}
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.707  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-2  Either party may terminate this Agreement for convenience upon thirty (30) days prior writ...
+0.636  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-1  12.2 Termination for Convenience
+0.636  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-5  A party may terminate for material breach if such breach remains uncured for thirty (30) d...
+0.564  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-10  Section 20.0005 Additional termination and notice provision for agreement compliance.
+0.564  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-100  Section 20.0095 Additional termination and notice provision for agreement compliance.

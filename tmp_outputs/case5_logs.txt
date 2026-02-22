@@ -1,0 +1,6 @@
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.800  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-3  2026-02-20T09:01:18Z ERROR request timeout route=/admin latency_ms=12000
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-10  2026-02-20T09:00:06Z INFO synthetic event=0006 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-100  2026-02-20T09:01:36Z INFO synthetic event=0096 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-1000  2026-02-20T09:16:36Z INFO synthetic event=0996 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-1001  2026-02-20T09:16:37Z INFO synthetic event=0997 route=/admin status=ok

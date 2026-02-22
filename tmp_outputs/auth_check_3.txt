@@ -1,0 +1,11 @@
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-100      if path.starts_with("/admin") && !user.mfa_enabled {
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1003          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-101          return Err(AuthError::MfaRequired);
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1055          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1107          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1159          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1211          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1263          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1315          enforce_mfa(user, "/admin/export")?;
+0.533  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1367          enforce_mfa(user, "/admin/export")?;

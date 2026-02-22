@@ -1,0 +1,11 @@
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1002          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1024  pub fn authorize_guard_16(user: &User, route: &str, method: &str) -> AuthResult<()> {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1039          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1054          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1076  pub fn authorize_guard_17(user: &User, route: &str, method: &str) -> AuthResult<()> {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1091          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1106          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1128  pub fn authorize_guard_18(user: &User, route: &str, method: &str) -> AuthResult<()> {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-114  pub fn authorize_request(user: &User, permission: Permission, required_scope: &str) -> Aut...
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1143          authorize_request(user, Permission::ManageUsers, "write:users")?;

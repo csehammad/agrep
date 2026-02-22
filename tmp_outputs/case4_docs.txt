@@ -1,0 +1,6 @@
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-10  Policy note 0002: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-100  Policy note 0092: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1000  Policy note 0992: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1001  Policy note 0993: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1002  Policy note 0994: authentication, authorization, and data retention controls apply.

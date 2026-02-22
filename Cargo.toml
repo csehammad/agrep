@@ -1,0 +1,8 @@
+[package]
+name = "agrep"
+version = "1.0.0"
+edition = "2021"
+description = "Universal, agent-first search across code, legal docs, docs, and logs"
+license = "MIT"
+
+[dependencies]

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>agrep v1 End-to-End Test Report</title>
+  <style>
+    :root {
+      --ink:#0f172a; --muted:#334155; --card:#fff; --line:#dbe3ef;
+      --ok:#0f766e; --bg1:#f7f9fc; --bg2:#edf4ff; --callout:#fff7ed;
+    }
+    body { margin:0; padding:28px; font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%); color:var(--ink); }
+    h1,h2,h3 { margin:0 0 12px; }
+    p, li { color:var(--muted); line-height:1.5; }
+    .meta,.card,.callout { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:12px 0; }
+    .callout { background:var(--callout); }
+    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+    th,td { border-bottom:1px solid var(--line); text-align:left; padding:10px; vertical-align:top; }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:13px; }
+    pre { background:#0b1220; color:#dbeafe; border-radius:8px; padding:14px; overflow:auto; white-space:pre-wrap; word-break:break-word; }
+    .ok { color:var(--ok); font-weight:700; }
+    .grid { display:grid; grid-template-columns:1fr; gap:12px; }
+    @media (min-width: 1000px) { .grid { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>agrep v1 End-to-End Test Report</h1>
+
+  <div class="meta">
+    <p><strong>Date:</strong> 2026-02-20</p>
+    <p><strong>Workspace:</strong> /Users/hammadulhaq/gREP</p>
+    <p><strong>Binary:</strong> ./target/release/agrep</p>
+    <p><strong>Fixture Scale:</strong> code/auth_service.rs=8,542 lines; other fixtures=1,100 lines each.</p>
+    <p><strong>Goal:</strong> Validate not only search results, but full operational flow from query input to action decisions.</p>
+  </div>
+
+  <div class="card">
+    <h2>1) How To Use agrep In Practice</h2>
+    <p>Typical run pattern by an agent/operator:</p>
+    <ol>
+      <li>Formulate intent query in NL or explicit terms.</li>
+      <li>Pick domain (<code>code</code>, <code>legal</code>, <code>docs</code>, <code>logs</code>, or <code>auto</code>).</li>
+      <li>Run with <code>--show-plan</code> first to inspect query expansion and boosts.</li>
+      <li>Collect top results in <code>table</code> format for triage, then <code>jsonl</code> for machine pipelines.</li>
+      <li>Apply include/exclude/context flags to tighten scope and then take action.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>2) Commands Executed (End-to-End)</h2>
+    <pre># A. Code investigation (human triage)
+./target/release/agrep query "where is auth enforced?"   --path /Users/hammadulhaq/gREP/testdata --domain code --format table --max-results 8 --show-plan
+
+# B. Code investigation (machine pipeline)
+./target/release/agrep query "where is auth enforced?"   --path /Users/hammadulhaq/gREP/testdata --domain code --format jsonl --max-results 5
+
+# C. Legal retrieval with forced domain
+./target/release/agrep query "termination for convenience"   --path /Users/hammadulhaq/gREP/testdata --domain legal --format table --max-results 5 --show-plan
+
+# D. Docs retrieval
+./target/release/agrep query "data retention policy exceptions"   --path /Users/hammadulhaq/gREP/testdata --domain docs --format table --max-results 5
+
+# E. Logs retrieval
+./target/release/agrep query "timeout route admin"   --path /Users/hammadulhaq/gREP/testdata --domain logs --format table --max-results 5
+
+# F. Include-only scope
+./target/release/agrep query "auth middleware"   --path /Users/hammadulhaq/gREP/testdata --domain auto --format table --max-results 10 --include code
+
+# G. Exclude noisy file
+./target/release/agrep query "auth"   --path /Users/hammadulhaq/gREP/testdata --domain auto --format table --max-results 10 --exclude routes.ts
+
+# H. Add context lines for reviewer handoff
+./target/release/agrep query "admin endpoints require authentication"   --path /Users/hammadulhaq/gREP/testdata --domain docs --format table --max-results 3 --context-lines 1
+
+# I. Auto-domain legal retrieval
+./target/release/agrep query "termination for convenience"   --path /Users/hammadulhaq/gREP/testdata --domain auto --format table --max-results 5</pre>
+  </div>
+
+  <div class="card">
+    <h2>3) How To Make Sense Of Hits</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Meaning</th><th>How to use it</th></tr></thead>
+      <tbody>
+        <tr><td><code>score</code></td><td>Aggregate relevance score.</td><td>Start triage from highest score; stop when relevance drops below your threshold.</td></tr>
+        <tr><td><code>source_type</code></td><td>Classified domain (<code>code</code>/<code>legal</code>/<code>docs</code>/<code>logs</code>).</td><td>Route work to right workflow (refactor, contract review, policy check, incident response).</td></tr>
+        <tr><td><code>path:anchor</code></td><td>Exact location in file.</td><td>Open precise line quickly for edit/review.</td></tr>
+        <tr><td><code>score_breakdown</code></td><td>Per-signal contribution (term/path/domain/intent).</td><td>Debug why a match ranked high or low.</td></tr>
+        <tr><td><code>signals</code></td><td>Confidence/parse/generated flags.</td><td>Filter low-confidence or generated-only hits before decisions.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <h2>4) End-to-End Decision Flow (When a Hit Appears)</h2>
+    <ol>
+      <li>Validate intent via <code>nl_plan</code> from <code>--show-plan</code>.</li>
+      <li>Inspect top 5 hits by <code>score</code>.</li>
+      <li>Confirm domain correctness (<code>source_type</code> and file path semantics).</li>
+      <li>If code hit: identify definition/callsite and open follow-up query for references.</li>
+      <li>If legal hit: capture clause ID and related sections for reviewer packet.</li>
+      <li>If logs hit: correlate neighboring timestamps and routes, then escalate incident if needed.</li>
+      <li>Apply narrowing flags (<code>--include</code>, <code>--exclude</code>, <code>--context-lines</code>) until false positives are acceptable.</li>
+      <li>Only then perform edits, policy action, or incident updates.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>5) Pass/Fail Matrix</h2>
+    <table>
+      <thead><tr><th>Case</th><th>Description</th><th>Status</th><th>Operational Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Code NL query + table + plan</td><td class="ok">PASS</td><td>Usable for first-pass code triage.</td></tr>
+        <tr><td>2</td><td>Code JSONL output</td><td class="ok">PASS</td><td>Directly consumable in automation.</td></tr>
+        <tr><td>3</td><td>Legal forced-domain retrieval</td><td class="ok">PASS</td><td>Legal text files are now classified/retrieved correctly.</td></tr>
+        <tr><td>4</td><td>Docs retrieval</td><td class="ok">PASS</td><td>Policy hunting works for handbook/docs.</td></tr>
+        <tr><td>5</td><td>Logs retrieval</td><td class="ok">PASS</td><td>Incident clue extraction works.</td></tr>
+        <tr><td>6</td><td>Include filter</td><td class="ok">PASS</td><td>Scope control works for focused searches.</td></tr>
+        <tr><td>7</td><td>Exclude filter</td><td class="ok">PASS</td><td>Noisy files can be removed from ranking.</td></tr>
+        <tr><td>8</td><td>Context lines</td><td class="ok">PASS</td><td>Reviewer handoff quality improves.</td></tr>
+        <tr><td>9</td><td>Auto-domain legal retrieval</td><td class="ok">PASS</td><td>Mixed-domain mode still captures legal intent.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Case 1 Output</h3><pre>{"type":"nl_plan","intent":"locate","terms":["where","is","auth","enforced"],"expanded_terms":["acl","auth","authenticate","authorization","authorize","enforced","guard","is","jwt","middleware","permission","policy","rbac","session","where"],"path_boosts":["auth","security","middleware","guard","policy","api","routes"],"excludes":[".git","target"]}
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1002          authorize_request(user, Permission::Export, "export:data")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1039          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1054          authorize_request(user, Permission::Export, "export:data")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1091          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1106          authorize_request(user, Permission::Export, "export:data")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-114  pub fn authorize_request(user: &amp;User, permission: Permission, required_scope: &amp;str) -&gt; Aut...
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1143          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.383  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1158          authorize_request(user, Permission::Export, "export:data")?;</pre></div>
+    <div class="card"><h3>Case 2 Output</h3><pre>{"id":"c1598e422929be17","source_type":"code","path":"/Users/hammadulhaq/gREP/testdata/code/auth_service.rs","anchor":"line-1002","snippet":"        authorize_request(user, Permission::Export, \"export:data\")?;","score":0.3833,"score_breakdown":{"domain":0.1000,"intent":0.1000,"path":0.0500,"term":0.1333},"signals":{"confidence":0.8833,"parse_error":false,"generated":false}}
+{"id":"c90773be0c37732e","source_type":"code","path":"/Users/hammadulhaq/gREP/testdata/code/auth_service.rs","anchor":"line-1039","snippet":"        authorize_request(user, Permission::ManageUsers, \"write:users\")?;","score":0.3833,"score_breakdown":{"domain":0.1000,"intent":0.1000,"path":0.0500,"term":0.1333},"signals":{"confidence":0.8833,"parse_error":false,"generated":false}}
+{"id":"c695af913ffb9c41","source_type":"code","path":"/Users/hammadulhaq/gREP/testdata/code/auth_service.rs","anchor":"line-1054","snippet":"        authorize_request(user, Permission::Export, \"export:data\")?;","score":0.3833,"score_breakdown":{"domain":0.1000,"intent":0.1000,"path":0.0500,"term":0.1333},"signals":{"confidence":0.8833,"parse_error":false,"generated":false}}
+{"id":"d95152aebbf28a1b","source_type":"code","path":"/Users/hammadulhaq/gREP/testdata/code/auth_service.rs","anchor":"line-1091","snippet":"        authorize_request(user, Permission::ManageUsers, \"write:users\")?;","score":0.3833,"score_breakdown":{"domain":0.1000,"intent":0.1000,"path":0.0500,"term":0.1333},"signals":{"confidence":0.8833,"parse_error":false,"generated":false}}
+{"id":"2ebbc854f8d18275","source_type":"code","path":"/Users/hammadulhaq/gREP/testdata/code/auth_service.rs","anchor":"line-1106","snippet":"        authorize_request(user, Permission::Export, \"export:data\")?;","score":0.3833,"score_breakdown":{"domain":0.1000,"intent":0.1000,"path":0.0500,"term":0.1333},"signals":{"confidence":0.8833,"parse_error":false,"generated":false}}</pre></div>
+    <div class="card"><h3>Case 3 Output</h3><pre>{"type":"nl_plan","intent":"search","terms":["termination","for","convenience"],"expanded_terms":["convenience","for","for convenience","material breach","notice","terminate","termination"],"path_boosts":["contracts","legal","msa","dpa"],"excludes":[".git","target"]}
+SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.707  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-2  Either party may terminate this Agreement for convenience upon thirty (30) days prior writ...
+0.636  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-1  12.2 Termination for Convenience
+0.636  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-5  A party may terminate for material breach if such breach remains uncured for thirty (30) d...
+0.564  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-10  Section 20.0005 Additional termination and notice provision for agreement compliance.
+0.564  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-100  Section 20.0095 Additional termination and notice provision for agreement compliance.</pre></div>
+    <div class="card"><h3>Case 4 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-10  Policy note 0002: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-100  Policy note 0092: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1000  Policy note 0992: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1001  Policy note 0993: authentication, authorization, and data retention controls apply.
+0.675  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1002  Policy note 0994: authentication, authorization, and data retention controls apply.</pre></div>
+    <div class="card"><h3>Case 5 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.800  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-3  2026-02-20T09:01:18Z ERROR request timeout route=/admin latency_ms=12000
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-10  2026-02-20T09:00:06Z INFO synthetic event=0006 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-100  2026-02-20T09:01:36Z INFO synthetic event=0096 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-1000  2026-02-20T09:16:36Z INFO synthetic event=0996 route=/admin status=ok
+0.633  logs    /Users/hammadulhaq/gREP/testdata/logs/app.log:line-1001  2026-02-20T09:16:37Z INFO synthetic event=0997 route=/admin status=ok</pre></div>
+    <div class="card"><h3>Case 6 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1002          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1024  pub fn authorize_guard_16(user: &amp;User, route: &amp;str, method: &amp;str) -&gt; AuthResult&lt;()&gt; {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1039          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1054          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1076  pub fn authorize_guard_17(user: &amp;User, route: &amp;str, method: &amp;str) -&gt; AuthResult&lt;()&gt; {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1091          authorize_request(user, Permission::ManageUsers, "write:users")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1106          authorize_request(user, Permission::Export, "export:data")?;
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1128  pub fn authorize_guard_18(user: &amp;User, route: &amp;str, method: &amp;str) -&gt; AuthResult&lt;()&gt; {
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-114  pub fn authorize_request(user: &amp;User, permission: Permission, required_scope: &amp;str) -&gt; Aut...
+0.325  code    /Users/hammadulhaq/gREP/testdata/code/auth_service.rs:line-1143          authorize_request(user, Permission::ManageUsers, "write:users")?;</pre></div>
+    <div class="card"><h3>Case 7 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-10  Policy note 0002: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-100  Policy note 0092: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1000  Policy note 0992: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1001  Policy note 0993: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1002  Policy note 0994: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1003  Policy note 0995: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1004  Policy note 0996: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1005  Policy note 0997: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1006  Policy note 0998: authentication, authorization, and data retention controls apply.
+0.475  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-1007  Policy note 0999: authentication, authorization, and data retention controls apply.</pre></div>
+    <div class="card"><h3>Case 8 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.487  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-8  7:## Access Control\n8:All admin endpoints require authentication and authorization checks...
+0.425  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-10  9:Policy note 0001: authentication, authorization, and data retention controls apply.\n10:...
+0.425  docs    /Users/hammadulhaq/gREP/testdata/docs/security_policy.md:line-100  99:Policy note 0091: authentication, authorization, and data retention controls apply.\n10...</pre></div>
+    <div class="card"><h3>Case 9 Output</h3><pre>SCORE  DOMAIN  PATH:ANCHOR  SNIPPET
+0.607  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-2  Either party may terminate this Agreement for convenience upon thirty (30) days prior writ...
+0.536  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-1  12.2 Termination for Convenience
+0.536  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-5  A party may terminate for material breach if such breach remains uncured for thirty (30) d...
+0.464  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-10  Section 20.0005 Additional termination and notice provision for agreement compliance.
+0.464  legal   /Users/hammadulhaq/gREP/testdata/legal/msa.txt:line-100  Section 20.0095 Additional termination and notice provision for agreement compliance.</pre></div>
+  </div>
+
+  <div class="card">
+    <h2>6) Recommended Production Runbook</h2>
+    <ol>
+      <li>Always run first with <code>--show-plan</code> in CI/debug mode.</li>
+      <li>Use <code>table</code> for analyst triage, then repeat in <code>jsonl</code> for automation.</li>
+      <li>Define domain-specific score cutoffs (example: code ≥ 0.35, legal ≥ 0.50).</li>
+      <li>Persist top hits and plan into artifact logs for auditability.</li>
+      <li>On high-risk keywords (auth, delete, terminate, breach), require human sign-off.</li>
+    </ol>
+  </div>
+</body>
+</html>
