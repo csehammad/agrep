@@ -2,6 +2,8 @@
 
 Universal, agent-first search across code, legal docs, product docs, and logs.
 
+**Repo:** [github.com/csehammad/agrep](https://github.com/csehammad/agrep) · Started as a weekend fun project — grep for the agent era.
+
 **GitHub description** (for repo About):  
 `Agent-first search: natural-language queries, domain-aware ranking, and JSONL output for code, legal, docs, and logs.`
 
@@ -48,6 +50,26 @@ When to use what:
 
 - Use `grep`/`ripgrep` for fast raw text lookup and regex-heavy one-off searches.
 - Use `agrep` when you need explainable ranking, NL queries, domain routing, and automation-friendly output.
+
+## How it works under the hood
+
+agrep does **not** use an LLM or embeddings. Natural-language queries are compiled into a **query plan** by deterministic, rule-based logic. You can inspect the plan with `--show-plan`.
+
+**1. Query → plan**
+
+- **Tokenize** — Query is lowercased and split into words (`terms`).
+- **Expand terms** — If the query contains certain keywords, fixed synonym lists are added. For example: if the query contains "auth" (or "authentication" / "authorization"), the code domain adds: `auth`, `authenticate`, `authorization`, `authorize`, `guard`, `middleware`, `policy`, `rbac`, `acl`, `jwt`, `session`, `permission`. For legal, "termination" adds terms like `terminate`, `for convenience`, `material breach`, `notice`. All of this is substring checks + hardcoded lists; no model.
+- **Intent** — Inferred from words: "where" → `locate`, "impact" → `impact-analysis`, "policy"/"compliance" → `policy-check`, else `search`. Used in scoring.
+- **Path boosts** — Each domain has a list of path substrings that get a score boost. Code: `auth`, `security`, `middleware`, `guard`, `policy`, `api`, `routes`. Legal: `contracts`, `legal`, `msa`, `dpa`. Docs: `docs`, `handbook`, `guide`. Logs: `logs`, `events`, `audit`. So files like `auth_service.rs` rank higher when searching code.
+- **Excludes** — Default skips for paths containing `.git`, `target`.
+
+**2. Execution and scoring**
+
+- Files under `--path` are scanned recursively (respecting include/exclude). Each line is checked against **expanded_terms** (substring match). If at least one term matches, the line is scored.
+- **Score** = term score (fraction of expanded_terms matched) + path score (path contains any path_boosts) + domain alignment (path fits domain, e.g. `src`/`app` for code, `contract`/`legal` for legal) + intent bonus (e.g. `locate` gets a fixed bump).
+- Results are sorted by score; output is table or JSONL with `score_breakdown` so you see why a hit ranked.
+
+**Summary:** NL → tokenize → rule-based term expansion + intent + path boosts → scan lines, match terms, compute score → ranked results. Transparent and deterministic; no API calls or neural models.
 
 ## Core Capabilities
 
